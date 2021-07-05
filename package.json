@@ -1,0 +1,14 @@
+{
+  "name": "jsgrammar",
+  "version": "1.0.0",
+  "description": "A simple EBNF text matcher and generator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "jsgrammar": "index.js"
+  },
+  "author": "PreyMa",
+  "license": "MIT"
+}
