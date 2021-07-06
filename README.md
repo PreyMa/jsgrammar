@@ -2,12 +2,12 @@
 A simple EBNF matcher and generator written in JS
 
 ## Contents
-1. Usage - CLI
-2. Usage - Library
-3. EBNF Syntax
-4. Config File
-5. Links
-6. License
+1. [Usage - CLI](#usage---cli)
+2. [Usage - Library](#usage---library)
+3. [EBNF Syntax](#ebnf-syntax)
+4. [Config File](#config-file)
+5. [Links](#links)
+6. [License](#license)
 
 ## Usage - CLI
 Run the module folder with node and add your CLI options.
@@ -81,7 +81,7 @@ Supported predefined classes are:
 |-------|------------|--------------------------------------------------------|
 | \s    | Whitespace | `' \f\n\r\t\v'`                                        |
 | \d    | Digits     | `'0123456789'`                                         |
-| \w    | Word       | `'a...zA...Z_'`                                        |
+| \w    | Word       | `'a...zA...Z0...9_'`                                        |
 | \\.    | Any        | all above plus ```'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{\|}~'``` |
 
 Inverted classes and inverted predefined classes (eg `\S`) like in regex are not supported.
@@ -147,6 +147,7 @@ The `pow` parameter is usefull to change the probability of repetition lenght wh
 
 An alternative expression inside a named subexpression (eg. `( 'a' | 'b' ).x`) may have it's random distribution set via the `dist` param. As the alternative node cannot be named directly the param is set on its parent subexpression. The value is an array of numbers, setting a weight for each option in the alternative node. The weights are summed and a weight's percentage of the sum is used to determine it's likelyhood to be selected. The array `[90, 10]` would select the terminal `a` in 90% of all cases, and `b` in 10% of all cases.
 
+To limit the the number of repetitions for unlimitted ones add a `maxGenRepetition` field to the `generator` object. The default is 128.
 
 ## Links
 * My website: [egimoto.com](https://www.egimoto.com)
