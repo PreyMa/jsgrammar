@@ -54,14 +54,19 @@
       /** @type {[number]} **/
       this.rangeList= [];
 
+      function checkWeight( w ) {
+        assert( w > 0, 'Weight has to be greater than zero' );
+        return w;
+      }
+
       // Sum up all weights
       /** @type {number} **/
-      this.rangeSum= this.dataList.reduce( (a, d, i) => a+ fn(d, i), 0 )
+      this.rangeSum= this.dataList.reduce( (a, d, i) => a+ checkWeight( fn(d, i ) ), 0 )
 
       // Create list of weight percentages from 0 to 1
       // The heavier a data element, the large the span is it takes up
       let accu= 0;
-      this.dataList.forEach( (c, i) => this.rangeList.push(accu += ( fn(c, i) / this.rangeSum)) );
+      this.dataList.forEach( (c, i) => this.rangeList.push(accu += ( checkWeight( fn(c, i) ) / this.rangeSum)) );
       this.rangeList[ this.rangeList.length -1 ]= 1;
     }
 
@@ -744,6 +749,10 @@
 
       if( (this.maxRepetition >= 0 && config.max > this.maxRepetition) || (config.max < 0 && this.maxRepetition >= 0)) {
         throw Error('Generator max repetition is greater than grammar rule');
+      }
+
+      if( config.pow < 0 ) {
+        throw Error('Generator repetition power is smaller than zero');
       }
 
       this.maxGenRepetition= config.max;
