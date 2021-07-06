@@ -319,6 +319,16 @@
   }
 
 
+  const StringEscapeTable= {
+    'b': '\b',
+    'f': '\f',
+    'n': '\n',
+    'r': '\r',
+    't': '\t',
+    'v': '\v',
+    '0': '\0'
+  };
+
   /**
   * Token Iterator class
   * Lexes EBNF source files and returns tokens. Jumps over comments and allows
@@ -413,8 +423,15 @@
         const char= this.it.next();
 
         if( char === '\\' ) {
-          throw Error('todo')
+          if( !this.it.hasNext() ) {
+            throw Error('Unexpected end of string');
+          }
 
+          const seq= this.it.next();
+          const esc= StringEscapeTable[seq];
+
+          str+= (typeof esc === 'string') ? esc : seq;
+          continue;
         }
 
         if( char === stopChar ) {
