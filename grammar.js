@@ -204,28 +204,55 @@
   }
 
 
+  class StringPosition {
+    constructor( p= null ) {
+      /** @type {number} **/
+      this.idx= 0;
+      /** @type {number} **/
+      this.line= 0;
+      /** @type {number} **/
+      this.col= 0;
+
+
+      if( p instanceof StringPosition ) {
+        this.idx= p.idx;
+        this.line= p.line;
+        this.col= p.col;
+      }
+    }
+
+    index() {
+      return this.idx;
+    }
+
+    toString() {
+      return `${this.line+1}:${this.col+1}`;
+    }
+  }
+
+
   /**
   * String Iterator class
   * Iterates though a string's characters. Allows for peaking, jumping and string
   * splitting.
   **/
-  class StringIterator {
+  class StringIterator extends StringPosition {
     /** @param {String|StringIterator} s **/
     constructor( s ) {
+      super( s );
+
       /** @type {String} **/
       this.str= null;
-      /** @type {number} **/
-      this.idx= 0;
-
 
       if( s instanceof StringIterator ) {
         this.str= s.str;
-        this.idx= s.idx;
         return;
       }
 
+      // Set the position before the first char
       this.str= s;
       this.idx= -1;
+      this.col= -1;
     }
 
     hasNext() {
@@ -237,6 +264,12 @@
         throw Error('String Iterator bound check');
       }
 
+      this.col++;
+      if( this.get() === '\n' ) {
+        this.line++;
+        this.col= 0;
+      }
+
       this.idx++;
       return this.get();
     }
@@ -245,13 +278,18 @@
       return this.str.charAt(this.idx+ off);
     }
 
+    /** @param {number|StringPosition} pos **/
     set( pos ) {
-      const newPos= ( pos instanceof StringIterator ) ? pos.index() : pos;
-      if( pos < 0 || pos > this.str.length ) {
-        throw Error('Invalid seek position');
-      }
+      if( pos instanceof StringPosition ) {
+        this.idx= pos.idx;
+        this.col= pos.col;
+        this.line= pos.line;
 
-      this.idx= newPos;
+        assert((this.idx >= 0) && (this.idx <= this.str.length), 'Invalid seek position');
+
+      } else {
+        this._jumpToPos( pos );
+      }
     }
 
     peak() {
@@ -268,16 +306,68 @@
 
     consume( s ) {
       if( this.is( s ) ) {
-        this.idx+= s.length;
+        this._jumpToPos( this.idx+ s.length );
         return true;
       }
 
       return false;
     }
 
+    /** @param {number} pos **/
+    _jumpToPos( pos ) {
+      assert( (pos >= 0) && (pos <= this.str.length), 'Invalid seek position' );
+
+      // Nop
+      if( pos === this.idx ) {
+        return;
+      }
+
+      // Move forward
+      if( pos > this.idx ) {
+        let line= this.line;
+        let cur= this.str.indexOf('\n', this.idx);
+        let prev= this.idx;
+
+        // Move forward until the position is reached or skipped
+        while( cur < pos ) {
+          // Store the beginnig of the last line
+          prev= cur;
+          cur= this.str.indexOf('\n', cur+1);
+          cur= cur < 0 ? this.str.length : cur;
+
+          line++;
+        }
+
+        this.col= (line === this.line) ? this.col + (pos- this.idx) : pos- prev- 1;
+        this.line= line;
+
+      // Move backwards
+      } else {
+        let line= this.line;
+        let cur= this.str.lastIndexOf('\n', this.idx-1);
+
+        // Move backwards until the position is reached or skipped
+        while( cur > pos ) {
+          cur= this.str.lastIndexOf('\n', cur-1);
+          line--;
+        }
+
+        // The reached position is the end of the line, find it's beginning
+        if( cur === pos ) {
+          cur= this.str.lastIndexOf('\n', cur-1);
+          line--;
+        }
+
+        this.col= (line === this.line) ? this.col - (this.idx- pos) : pos- cur-1;
+        this.line= line;
+      }
+
+      this.idx= pos;
+    }
+
     jump( s ) {
       const pos= this.str.indexOf( s, this.idx );
-      this.idx= pos < 0 ? this.str.length : pos+ s.length;
+      this._jumpToPos( pos < 0 ? this.str.length : pos+ s.length );
     }
 
     jumpWhile( fn ) {
@@ -286,8 +376,8 @@
       }
     }
 
-    index() {
-      return this.idx;
+    position() {
+      return new StringPosition( this );
     }
 
     substring( pos, off= 0 ) {
@@ -307,14 +397,6 @@
 
     copy() {
       return new StringIterator( this );
-    }
-
-    calcLineNumber( idx = this.idx ) {
-      let cntr= 1;
-      for( let i= 0; (i!== this.str.length) && (i!== idx); i++ ) {
-        cntr+= (this.str.charAt(i) === '\n') ? 1 : 0;
-      }
-      return cntr;
     }
   }
 
@@ -368,7 +450,7 @@
       this._ignoreCommentsAndWhitespace();
 
       if( !this.hasNext() ) {
-        return new Token( Token.None, this.it );
+        return new Token( Token.None, this.it.position() );
       }
 
       let token= null;
@@ -412,7 +494,7 @@
 
       this.it.jumpWhile( isWordChar );
 
-      return new Token( Token.Name, this.it, this.it.substring( start ) );
+      return new Token( Token.Name, this.it.position(), this.it.substring( start ) );
     }
 
     _readString() {
@@ -436,7 +518,7 @@
 
         if( char === stopChar ) {
           this.it.next();
-          return new Token( Token.String, this.it, str );
+          return new Token( Token.String, this.it.position(), str );
         }
 
         str+= char;
@@ -450,7 +532,7 @@
 
       this.it.jumpWhile( c => !isWhitespace(c) && !isOperator(c) );
 
-      return new Token( Token.String, this.it, this.it.substring( start ) );
+      return new Token( Token.String, this.it.position(), this.it.substring( start ) );
     }
 
     _readCharClass() {
@@ -466,7 +548,7 @@
 
         if( char === ']' ) {
           this.it.next();
-          return new Token( Token.CharClass, this.it, this.it.substring( start ) );
+          return new Token( Token.CharClass, this.it.position(), this.it.substring( start ) );
         }
       }
 
@@ -478,24 +560,24 @@
 
       this.it.jump('}');
 
-      return new Token( Token.Repeat, this.it, this._readQuantifierName(), this.it.substring(start) );
+      return new Token( Token.Repeat, this.it.position(), this._readQuantifierName(), this.it.substring(start) );
     }
 
     _readOperator() {
       if( this.it.consume('::=') ) {
-        return new Token( Token.Define, this.it );
+        return new Token( Token.Define, this.it.position() );
       } else if( this.it.consume('?') ) {
-        return new Token( Token.Optional, this.it, this._readQuantifierName() );
+        return new Token( Token.Optional, this.it.position(), this._readQuantifierName() );
       } else if( this.it.consume('+') ) {
-        return new Token( Token.MinOne, this.it, this._readQuantifierName() );
+        return new Token( Token.MinOne, this.it.position(), this._readQuantifierName() );
       } else if( this.it.consume('*') ) {
-        return new Token( Token.RepeatMany, this.it, this._readQuantifierName() );
+        return new Token( Token.RepeatMany, this.it.position(), this._readQuantifierName() );
       } else if( this.it.consume('|') ) {
-        return new Token( Token.Or, this.it );
+        return new Token( Token.Or, this.it.position() );
       } else if( this.it.consume('(') ) {
-        return new Token( Token.ExpStart, this.it );
+        return new Token( Token.ExpStart, this.it.position() );
       } else if( this.it.consume(')') ) {
-        return new Token( Token.ExpEnd, this.it, this._readQuantifierName() );
+        return new Token( Token.ExpEnd, this.it.position(), this._readQuantifierName() );
       }
 
       return null;
@@ -532,13 +614,12 @@
   * Implements basic type checks and error reporting.
   **/
   class Token {
-    /** @param {StringIterator} it **/
-    constructor( t= Token.None, it= null, s= null, d= null) {
+    /** @param {StringPosition} pos **/
+    constructor( t= Token.None, pos= null, s= null, d= null) {
       /** @type {String} **/
       this.str= s;
       this.type= t;
-      this.pos= it ? it.index() : 0;
-      this.it= it;
+      this.pos= pos || new StringPosition();
       this.optData= d;
     }
 
@@ -567,9 +648,7 @@
     }
 
     throwError( msg ) {
-      const lineNum= this.it.calcLineNumber( this.pos );
-
-      throw Error(`Error at line ${lineNum}: ${this.toString()}: ${msg}`);
+      throw Error(`Error at line ${this.pos.toString()}: ${this.toString()}: ${msg}`);
     }
   }
 
@@ -589,28 +668,25 @@
 
   /**
   * Match Error class
-  * Containes a backtrace of the recursive expressions when a matching error occurs.
+  * Contains a backtrace of the recursive expressions when a matching error occurs.
   * Every grammar node appends itself to the trace on error.
   **/
   class MatchError {
     constructor() {
-      this.iterator= null;
       this.backtrace= [];
     }
 
-    error( n, it, m ) {
+    error( n, pos, m ) {
       this.reset();
-      this.append( n, it.index(), m );
-
-      this.iterator= it;
+      this.append( n, pos, m );
     }
 
-    append( node, idx, msg= null ) {
-      this.backtrace.push({ node, idx, msg });
+    append( node, pos, msg= null ) {
+      this.backtrace.push({ node, pos, msg });
     }
 
     hasError() {
-      return this.iterator !== null;
+      return this.backtrace.length !== 0;
     }
 
     toString() {
@@ -620,7 +696,7 @@
 
       let str= 'Matching Error: \n';
       this.backtrace.forEach( entry => {
-        str+= `at line ${this.iterator.calcLineNumber( entry.idx )}: ${entry.node.matchErrorString()} ${entry.msg || ''}\n`;
+        str+= `at line ${entry.pos.toString()}: ${entry.node.matchErrorString()} ${entry.msg || ''}\n`;
       });
 
       return str;
@@ -862,10 +938,10 @@
 
     tryMatch( it ) {
       return !this.children.some( c => {
-        const idx= it.index();
+        const pos= it.position();
 
         if( !c.match( it ) ) {
-          Interpreter.the().matchError().append( this, idx );
+          Interpreter.the().matchError().append( this, pos );
 
           return true;
         }
@@ -925,7 +1001,7 @@
 
       // No child matches
       if( !result ) {
-        Interpreter.the().matchError().append( this, it.index() );
+        Interpreter.the().matchError().append( this, it.position() );
       }
 
       return result;
@@ -1357,7 +1433,7 @@
           if( !it.hasNext() ) {
             // Clear any residual errors
             this.matchErrorObj.reset();
-            
+
             return true;
           }
 
@@ -1395,7 +1471,7 @@
 
   Interpreter._instance= null;
 
-
+  
 
   const exportObject= {
     Interpreter,
