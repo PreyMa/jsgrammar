@@ -1,6 +1,14 @@
 # jsgrammar
 A simple EBNF matcher and generator written in JS
 
+## Contents
+1. Usage - CLI
+2. Usage - Library
+3. EBNF Syntax
+4. Config File
+5. Links
+6. License
+
 ## Usage - CLI
 Run the module folder with node and add your CLI options.
 
@@ -20,13 +28,77 @@ You need to provide a grammar file containing the EBNF rules. With the `--config
 | --trimAll, -ta |            | Remove all whitespace from the input file                                                                             |
 
 ## Usage - Library
-Just require it like any other CommonJS module. The CLI code won't be loaded if the module is required by another one.
+Just require it like any other CommonJS module. The CLI code won't be loaded if the module is required by your code.
 
 ```JS
   const {Interpreter}= require('jsgrammar');
 ```
 
 Check out the CLI on how to use the interpreter as a library.
+
+
+## EBNF Syntax
+The syntax expected by the module is mostly identical to the standard EBNF, but it also supports some quality of life extensions.
+
+Define a rule with a name, `::=` and it's child expressions and use it inside other ones by it's name. Terminal symbols (aka strings) may be defined with double and single quotes. Characters can be escaped C-style with `\`.
+```text
+myRule ::= 'hello' "world"
+
+myOtherRule ::= myRule '!'
+```
+
+C-style line and block comments are supported.
+```text
+// The following rule is parsed
+IamParsed ::= 'hello' 'world'
+
+/* The following rule is ignored
+IamIgnored ::= 'hello' 'sailor'
+*/
+```
+
+Allowed repetition quantifiers are: `?`, `+`, `*` and `{}`. No quantifier means, that the expresion is expected once. `?` makes it optional, or in other words a minimum of zero and maximum of one repetition.  `+` expectecs a minimum of one occurances and a maximum of unlimitted rpetitions. `*` allows from zero to unlimitted occurances.
+
+To define a custom range the `{}` quantifier can be used. It accepts a minimum and maximum value (eg. `'a'{10,20}`). If no minimum is specified (eg. `'a'{,10}`), a minimum of zero is assumed, making it equivalent to `*` with an upper limit. No maximum allows for unlimitted repetitions (eg. `'a'{10,}`), making it equivalent to `+` with a minimum different to one.
+```text
+myRule ::= 'hello'? 'world'+ '!'*
+
+myOtherRule ::= 'hello'{10,20} 'sailor'{10,} '!'{,10}
+```
+
+Child expressions can be grouped as a subexpressions using parenthesis `()`. Alternative options are grouped by pipe characters `|`.
+```text
+myRule ::= 'match me' | 'or me' | 'or me'
+
+myOtherRule ::= ('repeat us both' myRule)*
+```
+
+To define a whole class of possible characters to match a character class can be used instead of stringing multiple terminals into a large alternative expression. A character class is made up of a list of possible characters to match enclosed inside square brackets like `[abcdef]`. Similar to regex char classes ranges can be defined like `[a-f]`. To define upper, lower case characters and underscore as class write `[a-zA-Z_]`. Or you could use the predefined class `[\w]` if you also wanted to include digits. Characters inside the class are C-style escaped using `\` (eg `[\\\]]` -> `\` and `]`).
+
+Supported predefined classes are:
+
+| Class | Name       | Characters                                             |
+|-------|------------|--------------------------------------------------------|
+| \s    | Whitespace | `' \f\n\r\t\v'`                                        |
+| \d    | Digits     | `'0123456789'`                                         |
+| \w    | Word       | `'a...zA...Z_'`                                        |
+| \\.    | Any        | all above plus ```'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{\|}~'``` |
+
+Inverted classes and inverted predefined classes (eg `\S`) like in regex are not supported.
+```text
+myRule ::= [EBNF] [abcSTUV] [a-zQRVW] [\dabcd]
+```
+
+
+To configure the text generator each expression's repetition quantifier can be named to define more precise repetiton boundries and randomness distribution. To name a quantifier or respectively the expression use `.name`. Expressions without a quantifier can also be named. Alternative expressions cannot be named directly. If you need to specify parameters for it you need to wrap it with a named subexpression and define the values there.
+
+```text
+myRule ::= 'my name is foo'.foo 'i am called bar'*.bar
+
+myOtherRule ::= 'call me foobar'{1,5}.foobar
+
+myAnotherRule ::= ('call' | 'my' | 'parent' | 'baz')?.baz
+```
 
 
 ## Config File
@@ -74,3 +146,14 @@ Each rule defines parameters for its named subexpressions. These are the possibl
 The `pow` parameter is usefull to change the probability of repetition lenght when generating text. Every random number used to determine the length of a repetition is taken to the power of this value. By specifying a large value, the random number is multiplied with itself multiple times, making it smaller. This creates a parabola, which favors smaller values. Using a value inbetween zero and one, the n-th root is taken from the random value, resulting in larger values. As all random numbers are inbetween 0 to 1 no overflow occurs.
 
 An alternative expression inside a named subexpression (eg. `( 'a' | 'b' ).x`) may have it's random distribution set via the `dist` param. As the alternative node cannot be named directly the param is set on its parent subexpression. The value is an array of numbers, setting a weight for each option in the alternative node. The weights are summed and a weight's percentage of the sum is used to determine it's likelyhood to be selected. The array `[90, 10]` would select the terminal `a` in 90% of all cases, and `b` in 10% of all cases.
+
+
+## Links
+* My website: [egimoto.com](https://www.egimoto.com)
+* EBNF visualizer: [bottlecaps.de](https://www.bottlecaps.de/rr/ui)*
+* Introduction to EBNF: [wikipedia.org](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form)
+
+*No support for some of the extended syntax features of this module
+
+## License
+This project is licensed under the MIT license.
