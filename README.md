@@ -16,7 +16,7 @@ Run the module folder with node and add your CLI options.
 node jsgrammar -m myRule myFileToMatch.txt
 ```
 
-You need to provide a grammar file containing the EBNF rules. With the `--config` option either specify a JSON config file containing the path or a path to a text file. If the option is ommited `--config ebnf.json` is assumed, which will try to load the config file `ebnf.json`.
+You need to provide a grammar file containing the EBNF rules. With the `--config` option either specify a JSON config file containing the path or a path to a text file. If the option is omitted `--config ebnf.json` is assumed, which will try to load the config file `ebnf.json`.
 
 | Option         | Arguments  | Description                                                                                                           |
 |----------------|------------|-----------------------------------------------------------------------------------------------------------------------|
@@ -24,7 +24,7 @@ You need to provide a grammar file containing the EBNF rules. With the `--config
 | --config, -c   | file       | `file` is either a path to a JSON config file, or to a plain text containing the EBNF source                          |
 | --match, -m    | rule, file | Matches text from a `file` against a named `rule`                                                                     |
 | --generate, -g | rule, file | Generates a random text from a named `rule` and saves it in a `file`                                                  |
-| --trim, -t     |            | Remove leading and trailing whitspace from the input file and reduce all other whitespace to a sinlge space character |
+| --trim, -t     |            | Remove leading and trailing whitespace from the input file and reduce all other whitespace to a single space character |
 | --trimAll, -ta |            | Remove all whitespace from the input file                                                                             |
 
 ## Usage - Library
@@ -40,7 +40,7 @@ Check out the CLI on how to use the interpreter as a library.
 ## EBNF Syntax
 The syntax expected by the module is mostly identical to the standard EBNF, but it also supports some quality of life extensions.
 
-Define a rule with a name, `::=` and it's child expressions and use it inside other ones by it's name. Terminal symbols (aka strings) may be defined with double and single quotes. Characters can be escaped C-style with `\`.
+Define a rule with a name, `::=` and its child expressions and use it inside other ones by its name. Terminal symbols (aka strings) may be defined with double and single quotes. Characters can be escaped C-style with `\`.
 ```text
 myRule ::= 'hello' "world"
 
@@ -57,9 +57,9 @@ IamIgnored ::= 'hello' 'sailor'
 */
 ```
 
-Allowed repetition quantifiers are: `?`, `+`, `*` and `{}`. No quantifier means, that the expresion is expected once. `?` makes it optional, or in other words a minimum of zero and maximum of one repetition.  `+` expectecs a minimum of one occurances and a maximum of unlimitted rpetitions. `*` allows from zero to unlimitted occurances.
+Allowed repetition quantifiers are: `?`, `+`, `*` and `{}`. No quantifier means, that the expression is expected once. `?` makes it optional, or in other words a minimum of zero and maximum of one repetition.  `+` expects a minimum of one occurrences and a maximum of unlimited repetitions. `*` allows from zero to unlimited occurrences.
 
-To define a custom range the `{}` quantifier can be used. It accepts a minimum and maximum value (eg. `'a'{10,20}`). If no minimum is specified (eg. `'a'{,10}`), a minimum of zero is assumed, making it equivalent to `*` with an upper limit. No maximum allows for unlimitted repetitions (eg. `'a'{10,}`), making it equivalent to `+` with a minimum different to one.
+To define a custom range the `{}` quantifier can be used. It accepts a minimum and maximum value (eg. `'a'{10,20}`). If no minimum is specified (eg. `'a'{,10}`), a minimum of zero is assumed, making it equivalent to `*` with an upper limit. No maximum allows for unlimited repetitions (eg. `'a'{10,}`), making it equivalent to `+` with a minimum different to one.
 ```text
 myRule ::= 'hello'? 'world'+ '!'*
 
@@ -90,7 +90,7 @@ myRule ::= [EBNF] [abcSTUV] [a-zQRVW] [\dabcd]
 ```
 
 
-To configure the text generator each expression's repetition quantifier can be named to define more precise repetiton boundries and randomness distribution. To name a quantifier or respectively the expression use `.name`. Expressions without a quantifier can also be named. Alternative expressions cannot be named directly. If you need to specify parameters for it you need to wrap it with a named subexpression and define the values there.
+To configure the text generator each expression's repetition quantifier can be named to define more precise repetition boundaries and randomness distribution. To name a quantifier or respectively the expression use `.name`. Expressions without a quantifier can also be named. Alternative expressions cannot be named directly. If you need to specify parameters for it you need to wrap it in a named subexpression and define the values there.
 
 ```text
 myRule ::= 'my name is foo'.foo 'i am called bar'*.bar
@@ -143,11 +143,11 @@ Each rule defines parameters for its named subexpressions. These are the possibl
 
 `min` and `max` parameters need to inside the bounds defined by the grammar. A terminal defined as `'hello'{1,10}.a` may not have a `min` value below 1 or a `max` value above 10.
 
-The `pow` parameter is usefull to change the probability of repetition lenght when generating text. Every random number used to determine the length of a repetition is taken to the power of this value. By specifying a large value, the random number is multiplied with itself multiple times, making it smaller. This creates a parabola, which favors smaller values. Using a value inbetween zero and one, the n-th root is taken from the random value, resulting in larger values. As all random numbers are inbetween 0 to 1 no overflow occurs.
+The `pow` parameter is useful to change the probability of repetition length when generating text. Every random number used to determine the length of a repetition is taken to the power of this value. By specifying a large value, the random number is multiplied with itself multiple times, making it smaller. This creates a parabola, which favors smaller values. Using a value in-between zero and one, the n-th root is taken from the random value, resulting in larger values. As all random numbers are in-between 0 to 1 no overflow occurs.
 
-An alternative expression inside a named subexpression (eg. `( 'a' | 'b' ).x`) may have it's random distribution set via the `dist` param. As the alternative node cannot be named directly the param is set on its parent subexpression. The value is an array of numbers, setting a weight for each option in the alternative node. The weights are summed and a weight's percentage of the sum is used to determine it's likelyhood to be selected. The array `[90, 10]` would select the terminal `a` in 90% of all cases, and `b` in 10% of all cases.
+An alternative expression inside a named subexpression (eg. `( 'a' | 'b' ).x`) may have its random distribution set via the `dist` param. As the alternative node cannot be named directly the param is set on its parent subexpression. The value is an array of numbers, setting a weight for each option in the alternative node. The weights are summed and a weight's percentage of the sum is used to determine its likelihood to be selected. The array `[90, 10]` would select the terminal `a` in 90% of all cases, and `b` in 10% of all cases.
 
-To limit the the number of repetitions for unlimitted ones add a `maxGenRepetition` field to the `generator` object. The default is 128.
+To limit the number of repetitions for unlimited ones add a `maxGenRepetition` field to the `generator` object. The default is 128.
 
 ## Links
 * My website: [egimoto.com](https://www.egimoto.com)
