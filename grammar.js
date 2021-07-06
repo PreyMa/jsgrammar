@@ -204,6 +204,10 @@
   }
 
 
+  /**
+  * String Position class
+  * Stores index, line number and line-column of a position in a string
+  **/
   class StringPosition {
     constructor( p= null ) {
       /** @type {number} **/
@@ -1471,7 +1475,7 @@
 
   Interpreter._instance= null;
 
-  
+
 
   const exportObject= {
     Interpreter,
