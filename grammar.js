@@ -34,12 +34,18 @@
 
   function assert( x, m= '' ) {
     if( !x ) {
+      // Construct long/labour intensive messages via callback
       const msg= (m instanceof Function) ? m( x ) : m;
       throw Error( 'Assertion failed: '+ msg );
     }
   }
 
 
+  /**
+  * Range Distribution class
+  * Select a random value from a list based on its weight. Heavy values are
+  * selected more likely as they make up a larger perecentage of the summed weights
+  **/
   class RangeDistribution {
     constructor( arr, fn ) {
       /** @type {[any]} **/
@@ -79,10 +85,20 @@
   }
 
 
+  /**
+  * Abstract Char Class class
+  * Base class for Range Char Class and Fragmeneted Char Class
+  * Creates a single random character or checks whether a character is part of
+  * the class
+  **/
   class CharClass {
     constructor() {}
 
     length() {
+      abstractMethod();
+    }
+
+    contains() {
       abstractMethod();
     }
 
@@ -91,6 +107,10 @@
     }
   }
 
+  /*
+  * Range Char Class class
+  * Defines a range of a characters inbetween two code points
+  */
   class RangeCharClass extends CharClass {
     /**
     * @param {String} s
@@ -130,7 +150,10 @@
   RangeCharClass.AlphaUpper= new RangeCharClass('A', 'Z');
   RangeCharClass.AlphaLower= new RangeCharClass('a', 'z');
 
-
+  /*
+  * Fragmented Char Class class
+  * Defines a list of characters
+  */
   class FragmentedCharClass extends CharClass {
     /** @param {String} s **/
     constructor( s ) {
@@ -156,13 +179,18 @@
   FragmentedCharClass.WhiteSpace= new FragmentedCharClass(' \f\n\r\t\v');
   FragmentedCharClass.Specials  = new FragmentedCharClass('!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~');
 
+
+  /**
+  * String Builder class
+  * Converts inputs into an array of strings that is joined at the end
+  **/
   class StringBuilder {
     constructor() {
       this.arr= [];
     }
 
     append( s ) {
-      this.arr.push( s );
+      this.arr.push( s+ '' );
     }
 
     toString() {
@@ -171,6 +199,11 @@
   }
 
 
+  /**
+  * String Iterator class
+  * Iterates though a string's characters. Allows for peaking, jumping and string
+  * splitting.
+  **/
   class StringIterator {
     /** @param {String|StringIterator} s **/
     constructor( s ) {
@@ -281,7 +314,11 @@
   }
 
 
-
+  /**
+  * Token Iterator class
+  * Lexes EBNF source files and returns tokens. Jumps over comments and allows
+  * for peaking.
+  **/
   class TokenIterator {
     constructor( s ) {
       this.it= new StringIterator( s );
@@ -468,6 +505,10 @@
   }
 
 
+  /**
+  * Token Base class
+  * Implements basic type checks and error reporting.
+  **/
   class Token {
     /** @param {StringIterator} it **/
     constructor( t= Token.None, it= null, s= null, d= null) {
@@ -524,6 +565,11 @@
   Token.ExpEnd=     { id: 11, name: 'ExpEnd' };
 
 
+  /**
+  * Match Error class
+  * Containes a backtrace of the recursive expressions when a matching error occurs.
+  * Every grammar node appends itself to the trace on error.
+  **/
   class MatchError {
     constructor() {
       this.iterator= null;
@@ -565,6 +611,12 @@
   }
 
 
+  /**
+  * Grammar Node Base class
+  * Base class for all types of grammar nodes representing a grammar.
+  * Constructs nodes from tokens via factory and handles all common logic like
+  * repetition, generator configuration and tree recursion.
+  **/
   class GrammarNode {
     /** @param tk {Token} **/
     constructor( tk ) {
@@ -667,7 +719,7 @@
       abstractMethod();
     }
 
-    tryMatch( it ) {
+    tryMatch() {
       abstractMethod();
     }
 
@@ -726,6 +778,10 @@
     }
   }
 
+  /**
+  * Subexpression Grammar Node
+  * Represents expressions grouped by parenthesis
+  **/
   class SubExpressionNode extends GrammarNode {
     /** @param tk {Token} **/
     constructor( tk, p ) {
@@ -801,6 +857,10 @@
     }
   }
 
+  /**
+  * Alternative Grammar Node
+  * Represents alternative expressions grouping expressions with pipe characters
+  **/
   class AlternativeNode extends SubExpressionNode {
     /** @param tk {Token} **/
     constructor( tk, p ) {
@@ -859,6 +919,10 @@
     }
   }
 
+  /**
+  * Expression Grammar Node
+  * Represents a named rule defined as multiple expressions
+  **/
   class ExpressionNode extends SubExpressionNode {
     /** @param tk {Token} **/
     constructor( tk ) {
@@ -880,6 +944,10 @@
     }
   }
 
+  /**
+  * Terminal Grammar Node
+  * Represents a string expected to match
+  **/
   class TerminalNode extends GrammarNode {
     /** @param tk {Token} **/
     constructor( tk ) {
@@ -906,6 +974,10 @@
     }
   }
 
+  /**
+  * Nonterminal Grammar Node
+  * Represents a recursion into another named rule expression
+  **/
   class NonTerminalNode extends GrammarNode {
     /** @param tk {Token} **/
     constructor( tk ) {
@@ -933,7 +1005,10 @@
     }
   }
 
-
+  /**
+  * Charclass Grammar Node
+  * Represents a terminal string consisting of characters defined inside square brackets
+  **/
   class CharClassNode extends GrammarNode {
     /** @param tk {Token} **/
     constructor( tk ) {
@@ -1058,6 +1133,7 @@
   }
 
 
+  // Parser states
   const State= {
     None:          { id: 0, name: 'None' },
     Expression:    { id: 1, name: 'Exression' },
@@ -1065,6 +1141,12 @@
     Alternative:   { id: 2, name: 'Alternative' }
   };
 
+
+  /**
+  * Interpreter class
+  * Parses a grammar from an EBNF source string. Matches a provided text against
+  * the grammar or generates a random text based on the grammar.
+  **/
   class Interpreter {
     constructor( config ) {
 
