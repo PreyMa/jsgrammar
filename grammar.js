@@ -44,7 +44,7 @@
   /**
   * Range Distribution class
   * Select a random value from a list based on its weight. Heavy values are
-  * selected more likely as they make up a larger perecentage of the summed weights
+  * selected more likely as they make up a larger percentages of the summed weights
   **/
   class RangeDistribution {
     constructor( arr, fn ) {
@@ -92,7 +92,7 @@
 
   /**
   * Abstract Char Class class
-  * Base class for Range Char Class and Fragmeneted Char Class
+  * Base class for Range Char Class and Fragmented Char Class
   * Creates a single random character or checks whether a character is part of
   * the class
   **/
