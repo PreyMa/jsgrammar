@@ -1355,6 +1355,9 @@
 
         if( expr.match( it ) ) {
           if( !it.hasNext() ) {
+            // Clear any residual errors
+            this.matchErrorObj.reset();
+            
             return true;
           }
 
