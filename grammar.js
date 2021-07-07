@@ -32,11 +32,14 @@
     return /[\*\+\?\|\{\[\"\'\(\)]/.test( s );
   }
 
+  function unwrapMessageCb( m, ...a ) {
+    return (m instanceof Function) ? m( ...a ) : m;
+  }
+
   function assert( x, m= '' ) {
     if( !x ) {
       // Construct long/labour intensive messages via callback
-      const msg= (m instanceof Function) ? m( x ) : m;
-      throw Error( 'Assertion failed: '+ msg );
+      throw Error( 'Assertion failed: '+ unwrapMessageCb( m, x ) );
     }
   }
 
@@ -194,8 +197,8 @@
       this.arr= [];
     }
 
-    append( s ) {
-      this.arr.push( s+ '' );
+    append( ...strs ) {
+      strs.forEach( s => this.arr.push( s+ '' ) );
     }
 
     toString() {
@@ -713,6 +716,46 @@
   }
 
 
+  class MatchTrace {
+    constructor() {
+      this.builder= new StringBuilder();
+      this.depthPadding= '';
+      this.enabled= true;
+    }
+
+    enable( v ) {
+      this.enabled= v;
+    }
+
+    append( msg ) {
+      if( this.enabled ) {
+        this.builder.append( this.depthPadding, unwrapMessageCb( msg ), '\n' );
+      }
+    }
+
+    pushDepth() {
+      if( this.enabled ) {
+        this.depthPadding+= '  ';
+      }
+    }
+
+    popDepth() {
+      if( this.enabled ) {
+        assert( this.depthPadding.length >= 2, 'Cannot pop from match trace' );
+        this.depthPadding= this.depthPadding.slice(0, -2);
+      }
+    }
+
+    toString() {
+      return this.builder.toString();
+    }
+
+    clear() {
+      this.builder= new StringBuilder();
+    }
+  }
+
+
   /**
   * Grammar Node Base class
   * Base class for all types of grammar nodes representing a grammar.
@@ -941,17 +984,28 @@
     }
 
     tryMatch( it ) {
-      return !this.children.some( c => {
+      const int= Interpreter.the();
+      int.matchTrace().pushDepth();
+
+      const hasError= this.children.some( c => {
         const pos= it.position();
 
         if( !c.match( it ) ) {
-          Interpreter.the().matchError().append( this, pos );
+          int.matchError().append( this, pos );
 
           return true;
         }
 
         return false;
       });
+
+      int.matchTrace().popDepth();
+
+      if( hasError ) {
+        int.matchTrace().append('() Could not match SubExpression');
+      }
+
+      return !hasError;
     }
 
     matchErrorString() {
@@ -990,22 +1044,34 @@
     }
 
     tryMatch( it ) {
+      const int= Interpreter.the();
+      int.matchTrace().append('| Matching alternative expression');
+
       // Try to match each child individually
-      const result= this.children.some( c => {
+      const result= this.children.some( (c, i) => {
         const testIt= it.copy();
 
+        if( i ) {
+          int.matchTrace().append('| Matching alternative option')
+        }
+        int.matchTrace().pushDepth();
+
+        const result= c.match(testIt);
+
         // Found a match -> update the global iterator
-        if( c.match(testIt) ) {
+        if( result ) {
           it.set( testIt );
-          return true;
         }
 
-        return false;
+        int.matchTrace().popDepth();
+
+        return result;
       });
 
       // No child matches
       if( !result ) {
-        Interpreter.the().matchError().append( this, it.position() );
+        int.matchError().append( this, it.position() );
+        int.matchTrace().append('| Could not match any option')
       }
 
       return result;
@@ -1048,6 +1114,11 @@
     matchErrorString() {
       return `Could not match Expression: '${ this.name }'`;
     }
+
+    tryMatch( it ) {
+      Interpreter.the().matchTrace().append(() => `() Matching expression '${this.name}'`);
+      return super.tryMatch( it );
+    }
   }
 
   /**
@@ -1063,11 +1134,15 @@
     }
 
     tryMatch( it ) {
+      const int= Interpreter.the();
+
       if( !it.consume( this.str ) ) {
-        Interpreter.the().matchError().error( this, it );
+        int.matchTrace().append(() => `# Could not match terminal '${this.str}'`);
+        int.matchError().error( this, it );
         return false;
       }
 
+      int.matchTrace().append(() => `# Matched terminal '${this.str}'`);
       return true;
     }
 
@@ -1259,10 +1334,14 @@
       this.sourceIterator= null;
       this.expressions= null;
       this.matchErrorObj= new MatchError();
+      this.matchTraceObj= new MatchTrace();
 
       this.configObj= Object.assign({
-        maxGenRepetition: 128
+        maxGenRepetition: 128,
+        createMatchTrace: false
       }, config);
+
+      this.matchTraceObj.enable( this.configObj.createMatchTrace );
     }
 
     static the() {
@@ -1426,6 +1505,10 @@
       return this.matchErrorObj;
     }
 
+    matchTrace() {
+      return this.matchTraceObj;
+    }
+
     match( exprName, str ) {
       return this._instanceGuard(() => {
         const expr= this._getExpression( exprName );
@@ -1473,6 +1556,7 @@
     }
   }
 
+  /** @type {Interpreter} **/
   Interpreter._instance= null;
 
 

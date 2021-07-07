@@ -232,7 +232,12 @@ Available options:
   args.defineArgument({
     names: ['--trimAll', '-ta'],
     desc: 'Remove all whitespace in the input file'
-  })
+  });
+
+  args.defineArgument({
+    names: ['--trace', '-r'],
+    desc: 'Print which and when expressions are matched'
+  });
 
   args.parse( process.argv, 2 );
 
@@ -257,11 +262,19 @@ Available options:
     srcFilePath= configFilePath;
   }
 
+  const printMatchTrace= args.get('--trace').hasValue();
+
   // Load the grammar source file and create the interpreter
   let int= null;
   try {
+    // Add trace property if option '--trace' is set
+    const config= configFile.get('generator').valueOr({});
+    if( printMatchTrace ) {
+      config.createMatchTrace= true;
+    }
+    int= new Interpreter( config );
+
     const srcFile= fs.readFileSync(srcFilePath, 'utf8');
-    int= new Interpreter( configFile.get('generator').valueOrUndefined() );
     int.parse( srcFile );
 
   } catch( e ) {
@@ -292,7 +305,13 @@ Available options:
         fileText= fileText.replace(/\s/g,'');
       }
 
-      if( int.match( ruleName, fileText) ) {
+      // Print match trace
+      const result= int.match( ruleName, fileText);
+      if( printMatchTrace ) {
+        console.log( int.matchTrace().toString() );
+      }
+
+      if( result ) {
         console.log( Colors.Green('Successfull match') );
         return;
       }
