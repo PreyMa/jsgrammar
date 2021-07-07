@@ -1512,6 +1512,8 @@
     }
 
     _getExpression( exprName ) {
+      assert( this.expressions, 'No expressions parsed' );
+
       const expr= this.expressions.get( exprName );
       assert( expr, () => `Unknown expression name: '${exprName}'` );
 
