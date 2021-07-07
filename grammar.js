@@ -681,7 +681,7 @@
     }
 
     error( n, pos, m ) {
-      this.reset();
+      this.clear();
       this.append( n, pos, m );
     }
 
@@ -706,7 +706,7 @@
       return str;
     }
 
-    reset() {
+    clear() {
       this.iterator= null;
       this.backtrace.length= 0;
     }
@@ -1436,7 +1436,7 @@
         if( expr.match( it ) ) {
           if( !it.hasNext() ) {
             // Clear any residual errors
-            this.matchErrorObj.reset();
+            this.matchErrorObj.clear();
 
             return true;
           }
