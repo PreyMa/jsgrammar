@@ -212,6 +212,15 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
       }
     });
 
+    // Run on Ctr+S
+    document.addEventListener('keydown', e => {
+      if( e.ctrlKey && e.key === 's' ) {
+        e.preventDefault();
+
+        update();
+      }
+    });
+
     // Run once
     update();
   });
