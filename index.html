@@ -4,8 +4,115 @@
     <meta charset="utf-8">
     <title>EBNF in the browser</title>
     <script src="./grammar.js" charset="utf-8"></script>
+    <script src="./web.js" charset="utf-8"></script>
+
+    <style media="screen">
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      #main {
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 50px auto 260px;
+        font-size: 1.1em;
+      }
+
+      textarea {
+        width: 100%;
+        height: 100%;
+        resize: none;
+        font-family: "Courier New", monospace;
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: auto;
+      }
+
+      #ebnf, #text, #config {
+        padding: 5px;
+      }
+
+      #topbar {
+        grid-column: 1/4;
+        border-bottom: 1px solid black;
+        padding: 15px;
+      }
+
+      #topbar > div {
+        display: inline-block;
+        margin-right: 20px;
+      }
+
+      #output {
+        grid-column: 1/4;
+        border-top: 1px solid black;
+        overflow: scroll;
+      }
+
+      #output:hover {
+        cursor: text;
+      }
+
+      #output > div {
+        white-space: pre;
+        font-family: "Courier New", monospace;
+      }
+
+      #output > div.red {
+        color: red;
+      }
+
+      #output > div.green {
+        color: green;
+      }
+    </style>
   </head>
   <body>
-
+    <div id="main">
+      <div id="topbar">
+        <div>
+          <label for="menu-generate">Generate / Match</label>
+          <input type="checkbox" id="menu-generate"/>
+        </div>
+        <div>
+          <label for="menu-trace">Trace match</label>
+          <input type="checkbox" id="menu-trace"/>
+        </div>
+        <div>
+          <label for="menu-autorun">Auto run</label>
+          <input type="checkbox" id="menu-autorun" checked/>
+        </div>
+        <div>
+          <label for="menu-rule">Rule to match</label>
+          <input type="text" id="menu-rule"/>
+        </div>
+        <div>
+          <label for="menu-trim">Trim Input</label>
+          <select id="menu-trim">
+            <option value="disable" selected>No trimming</option>
+            <option value="trim">Trim</option>
+            <option value="trimAll">Trim all</option>
+          </select>
+        </div>
+        <div>
+          <button id="menu-run">Run</button>
+        </div>
+      </div>
+      <div id="ebnf" title="EBNF source goes here">
+        <textarea></textarea>
+      </div>
+      <div id="text" title="Text to match goes here">
+        <textarea></textarea>
+      </div>
+      <div id="config" title="Config goes here">
+        <textarea></textarea>
+      </div>
+      <div id="output" title="Text output">
+      </div>
+    </div>
   </body>
 </html>
