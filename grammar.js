@@ -1292,13 +1292,18 @@
     }
 
     tryMatch( it ) {
+      const int= Interpreter.the();
+
       const fnd= this.classList.some( c => c.contains( it.get() ) );
       if( fnd ) {
         it.next();
+        int.matchTrace().append('[] Matched character class', this.data);
         return true;
       }
 
-      Interpreter.the().matchError().error( this, it );
+      int.matchTrace().append('[] Could not match character class', this.data);
+      int.matchError().error( this, it );
+
       return false;
     }
 
