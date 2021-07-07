@@ -716,6 +716,11 @@
   }
 
 
+  /**
+  * Match Trace class
+  * Creates a record of the matching process. Grammar nodes each append a line of text.
+  * When disabled all methods become NOP
+  **/
   class MatchTrace {
     constructor() {
       this.builder= new StringBuilder();
