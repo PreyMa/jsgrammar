@@ -120,9 +120,33 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
           return;
         }
 
+        // Create interpreter and parse the ebnf source
+        const int= new Interpreter( config );
+        try {
+          int.parse( ebnf );
+        } catch( e ) {
+          errorln('Parsing error');
+          errorln( e );
+          return;
+        }
+
         // Run generator
         if( generateCheckbox.checked ) {
-          throw Error('Todo! This feature is available in the CLI');
+          // Init the generator
+          const generatorRules= config.rules || {};
+          for( const rule in generatorRules ) {
+            int.setGeneratorConfig( rule, generatorRules[rule] );
+          }
+
+          try {
+            const text= int.generate( ruleText.value );
+            println( text );
+
+          } catch( e ) {
+            errorln('Text generation error');
+            errorln( e );
+            return;
+          }
 
         // Run matcher
         } else {
@@ -140,17 +164,6 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
             case 'disable':
             default:
               break;
-          }
-
-
-          const int= new Interpreter( config );
-
-          try {
-            int.parse( ebnf );
-          } catch( e ) {
-            errorln('Parsing error');
-            errorln( e );
-            return;
           }
 
           try {
@@ -176,6 +189,7 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
 
       } catch( e ) {
         errorln('Caught internal error', e);
+        console.error( e );
       }
     }
 
