@@ -987,10 +987,13 @@
       const int= Interpreter.the();
       int.matchTrace().pushDepth();
 
-      const hasError= this.children.some( c => {
-        const pos= it.position();
+      const testIt= it.copy();
 
-        if( !c.match( it ) ) {
+      // Try to match every child
+      const hasError= this.children.some( c => {
+        const pos= testIt.position();
+
+        if( !c.match( testIt ) ) {
           int.matchError().append( this, pos );
 
           return true;
@@ -1001,7 +1004,11 @@
 
       int.matchTrace().popDepth();
 
-      if( hasError ) {
+      // Move the global iterator if the match was successfull
+      if( !hasError ) {
+        it.set( testIt );
+
+      } else {
         int.matchTrace().append('() Could not match SubExpression');
       }
 
@@ -1297,11 +1304,11 @@
       const fnd= this.classList.some( c => c.contains( it.get() ) );
       if( fnd ) {
         it.next();
-        int.matchTrace().append('[] Matched character class', this.data);
+        int.matchTrace().append(() => '[] Matched character class'+ this.data);
         return true;
       }
 
-      int.matchTrace().append('[] Could not match character class', this.data);
+      int.matchTrace().append(() => '[] Could not match character class'+ this.data);
       int.matchError().error( this, it );
 
       return false;
