@@ -2,12 +2,16 @@
 A simple EBNF matcher and generator written in JS
 
 ## Contents
-1. [Usage - CLI](#usage---cli)
-2. [Usage - Library](#usage---library)
-3. [EBNF Syntax](#ebnf-syntax)
-4. [Config File](#config-file)
-5. [Links](#links)
-6. [License](#license)
+1. [Try it out](#try-it-out)
+2. [Usage - CLI](#usage---cli)
+3. [Usage - Library](#usage---library)
+4. [EBNF Syntax](#ebnf-syntax)
+5. [Config File](#config-file)
+6. [Links](#links)
+7. [License](#license)
+
+## Try it out
+Clone the repository and open the `index.html` file in your browser to run the demo application. You can write your own rules and try out matching and text generation. For more options and a more productive workflow run the CLI with node. An explanation of the EBNF syntax and the features are down below. 
 
 ## Usage - CLI
 Run the module folder with node and add your CLI options.
