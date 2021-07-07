@@ -1441,7 +1441,7 @@
             return true;
           }
 
-          Interpreter.the().matchError().error( this, it, `There are unmatched characters left: '${it.splitString()}'` );
+          this.matchError().error( this, it, `There are unmatched characters left: '${it.splitString()}'` );
         }
 
         return false;
