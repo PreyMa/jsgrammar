@@ -14,18 +14,21 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
   const defaultText= `+299792.458E3`;
 
   const defaultConfig= `
-  {
-    "rules": {
-      "Number": {
-        "intDigits": {},
-        "decimalDigits": {}
-      },
-      "Exp": {
-        "exponentChar": {},
-        "exponentDigits": {}
+{
+  "maxGenRepetition": 25,
+  "rules": {
+    "Number": {
+      "intDigits": {},
+      "decimalDigits": {}
+    },
+    "Exp": {
+      "exponentChar": {},
+      "exponentDigits": {
+         "pow": "10"
       }
     }
-  }`;
+  }
+}`;
 
   const defaultRuleToMatch= 'Number';
 
