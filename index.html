@@ -7,6 +7,10 @@
     <script src="./web.js" charset="utf-8"></script>
 
     <style media="screen">
+      :root {
+        --code-font: "Courier New", monospace;
+      }
+
       * {
         margin: 0;
         padding: 0;
@@ -19,14 +23,15 @@
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         grid-template-rows: 50px auto 260px;
-        font-size: 1.1em;
+        font-family: sans-serif;
+        font-size: 1em;
       }
 
       textarea {
         width: 100%;
         height: 100%;
         resize: none;
-        font-family: "Courier New", monospace;
+        font-family: var(--code-font);
         font-size: 1rem;
         white-space: nowrap;
         overflow: auto;
@@ -39,12 +44,17 @@
       #topbar {
         grid-column: 1/4;
         border-bottom: 1px solid black;
-        padding: 15px;
+        display: flex;
+        flex-direction: row;
+        align-items: center
       }
 
       #topbar > div {
-        display: inline-block;
-        margin-right: 20px;
+        margin: 0 20px 0 20px;
+      }
+
+      #menu-run {
+        padding: 6px;
       }
 
       #output {
@@ -59,7 +69,7 @@
 
       #output > div {
         white-space: pre;
-        font-family: "Courier New", monospace;
+        font-family: var(--code-font);
       }
 
       #output > div.red {
@@ -76,19 +86,19 @@
       <div id="topbar">
         <div>
           <label for="menu-generate">Generate / Match</label>
-          <input type="checkbox" id="menu-generate"/>
+          <input type="checkbox" id="menu-generate" title="Check this box to generate text"/>
         </div>
         <div>
           <label for="menu-trace">Trace match</label>
-          <input type="checkbox" id="menu-trace"/>
+          <input type="checkbox" id="menu-trace" title="Check this box to view the match trace"/>
         </div>
         <div>
           <label for="menu-autorun">Auto run</label>
-          <input type="checkbox" id="menu-autorun" checked/>
+          <input type="checkbox" id="menu-autorun" checked title="Check this box to rerun when automatically when typing"/>
         </div>
         <div>
           <label for="menu-rule">Rule to match</label>
-          <input type="text" id="menu-rule"/>
+          <input type="text" id="menu-rule" title="The rule to be matched/generated"/>
         </div>
         <div>
           <label for="menu-trim">Trim Input</label>
@@ -99,7 +109,7 @@
           </select>
         </div>
         <div>
-          <button id="menu-run">Run</button>
+          <button id="menu-run" title="(Ctrl+S) Run once">Run</button>
         </div>
       </div>
       <div id="ebnf" title="EBNF source goes here">
