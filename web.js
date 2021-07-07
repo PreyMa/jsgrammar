@@ -124,6 +124,8 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
         }
 
         // Create interpreter and parse the ebnf source
+        config.createMatchTrace= traceCheckbox.checked;
+
         const int= new Interpreter( config );
         try {
           int.parse( ebnf );
@@ -153,8 +155,6 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
 
         // Run matcher
         } else {
-          config.createMatchTrace= traceCheckbox.checked;
-
           switch( trimSelector.value ) {
             case 'trim':
               text= text.trim().replace(/\s+/g,' ');
