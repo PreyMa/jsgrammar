@@ -1303,7 +1303,7 @@
     }
 
     matchErrorString() {
-      let regex= ''+ this.regex;
+      let regex= ''+ this.data;
       regex= regex.substring( 1, regex.length- 1 );
       return `Could not match CharacterClass: '${ regex }'`;
     }
@@ -1496,7 +1496,7 @@
 
     _getExpression( exprName ) {
       const expr= this.expressions.get( exprName );
-      assert( expr, 'Unknown expression name: '+ exprName );
+      assert( expr, () => `Unknown expression name: '${exprName}'` );
 
       return expr;
     }
