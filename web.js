@@ -122,7 +122,7 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
 
         // Run generator
         if( generateCheckbox.checked ) {
-          throw Error('todo');
+          throw Error('Todo! This feature is available in the CLI');
 
         // Run matcher
         } else {
