@@ -30,6 +30,7 @@ You need to provide a grammar file containing the EBNF rules. With the `--config
 | --generate, -g | rule, file | Generates a random text from a named `rule` and saves it in a `file`                                                  |
 | --trim, -t     |            | Remove leading and trailing whitespace from the input file and reduce all other whitespace to a single space character |
 | --trimAll, -ta |            | Remove all whitespace from the input file                                                                             |
+| --trace, -r    |            | Print which and when expressions are matched as a tree view                                                           |
 
 ## Usage - Library
 Just require it like any other CommonJS module. The CLI code won't be loaded if the module is required by your code.
