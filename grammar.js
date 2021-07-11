@@ -58,13 +58,17 @@
       this.rangeList= [];
 
       function checkWeight( w ) {
-        assert( w > 0, 'Weight has to be greater than zero' );
+        assert( w >= 0, 'Weight has to be greater than or equal to zero' );
         return w;
       }
 
       // Sum up all weights
       /** @type {number} **/
-      this.rangeSum= this.dataList.reduce( (a, d, i) => a+ checkWeight( fn(d, i ) ), 0 )
+      this.rangeSum= this.dataList.reduce( (a, d, i) => a+ checkWeight( fn(d, i ) ), 0 );
+      if( !this.rangeSum ) {
+        this.rangeList= null;
+        return;
+      }
 
       // Create list of weight percentages from 0 to 1
       // The heavier a data element, the large the span is it takes up
@@ -74,6 +78,10 @@
     }
 
     random() {
+      if( !this.rangeList ) {
+        return undefined;
+      }
+
       const r= Math.random();
 
       let fnd= null;
@@ -923,12 +931,21 @@
     }
 
     generate( builder ) {
+      const int= Interpreter.the();
+      int.generationDepth++;
+
       const factor= Math.pow( Math.random(), this.powGenRepetition );
       const rep= Math.round( this.minGenRepetition* (1- factor) + this.maxGenRepetition* factor );
 
       for( let i= 0; i!== rep; i++ ) {
         this.generateSingle( builder );
       }
+
+      int.generationDepth--;
+    }
+
+    isRecursive() {
+      return false;
     }
   }
 
@@ -1027,6 +1044,10 @@
     generateSingle( builder ) {
       this.children.forEach( c => c.generate( builder ) );
     }
+
+    isRecursive() {
+      return this.children.some( c => c.isRecursive() );
+    }
   }
 
   /**
@@ -1039,6 +1060,7 @@
       super( tk, p );
 
       this.dist= null;
+      this.nonRecursiveDist= null;
     }
 
     parsingState() {
@@ -1093,13 +1115,41 @@
       return 'Could not match AlternativeExpression';
     }
 
+    _getNonRecursiveOption() {
+      if( !this.nonRecursiveDist ) {
+        this.nonRecursiveDist= new RangeDistribution( this.children, c => c.isRecursive() ? 0 : 1 );
+      }
+
+      return this.nonRecursiveDist.random();
+    }
+
     generateSingle( builder ) {
       // Create defaut distribution
       if( !this.dist ) {
         this.dist= new RangeDistribution( this.children, () => 1 );
       }
 
+      // Only consider non recursive options if the maximal depth is reached
+      const int= Interpreter.the();
+      if( int.generationDepth > int.config().maxGenDetph ) {
+        const node= this._getNonRecursiveOption();
+
+        if( !node ) {
+          builder.append('<generation depth overflow>');
+          return;
+        }
+
+        node.generate( builder );
+        return;
+      }
+
       this.dist.random().generate( builder );
+    }
+
+    isRecursive() {
+      // Check if there is a non recursive option available
+      const x= this._getNonRecursiveOption();
+      return x ? true : false;
     }
   }
 
@@ -1195,6 +1245,10 @@
 
     generateSingle( builder ) {
       this.expression.generateSingle( builder );
+    }
+
+    isRecursive() {
+      return true;
     }
   }
 
@@ -1355,10 +1409,13 @@
 
       this.configObj= Object.assign({
         maxGenRepetition: 128,
+        maxGenDetph: 128,
         createMatchTrace: false
       }, config);
 
       this.matchTraceObj.enable( this.configObj.createMatchTrace );
+
+      this.generationDepth= 0;
     }
 
     static the() {
@@ -1553,6 +1610,8 @@
     generate( exprName ) {
       return this._instanceGuard(() => {
         const expr= this._getExpression( exprName );
+
+        this.generationDepth= 0;
 
         const builder= new StringBuilder();
         expr.generate( builder );
