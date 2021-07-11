@@ -108,11 +108,6 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
         const ebnf= ebnfTextField.value;
         const configText= configTextField.value;
 
-        if( !text ) {
-          println('No input text')
-          return;
-        }
-
         // Parse JSON config
         let config;
         try {
@@ -155,6 +150,11 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
 
         // Run matcher
         } else {
+          if( !text ) {
+            println('No input text')
+            return;
+          }
+
           switch( trimSelector.value ) {
             case 'trim':
               text= text.trim().replace(/\s+/g,' ');
