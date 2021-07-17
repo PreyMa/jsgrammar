@@ -1390,7 +1390,7 @@
     None:          { id: 0, name: 'None' },
     Expression:    { id: 1, name: 'Exression' },
     SubExpression: { id: 2, name: 'SubExression' },
-    Alternative:   { id: 2, name: 'Alternative' }
+    Alternative:   { id: 3, name: 'Alternative' }
   };
 
 
