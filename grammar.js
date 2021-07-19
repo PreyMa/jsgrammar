@@ -593,6 +593,10 @@
         return new Token( Token.ExpStart, this.it.position() );
       } else if( this.it.consume(')') ) {
         return new Token( Token.ExpEnd, this.it.position(), this._readQuantifierName() );
+      } else if( this.it.consume('&') ) {
+        return new Token( Token.PosLookAhead, this.it.position() );
+      } else if( this.it.consume('!') ) {
+        return new Token( Token.NegLookAhead, this.it.position() );
       }
 
       return null;
@@ -638,8 +642,12 @@
       this.optData= d;
     }
 
-    is( t ) {
-      return this.type === t;
+    is( ...t ) {
+      if( t.length === 1 ) {
+        return this.type === t[0];
+      }
+
+      return t.some( x => this.type === x );
     }
 
     data() {
@@ -667,18 +675,20 @@
     }
   }
 
-  Token.None=       { id: 0,  name: 'None' };
-  Token.String=     { id: 1,  name: 'String' };
-  Token.Name=       { id: 2,  name: 'Name' };
-  Token.CharClass=  { id: 3,  name: 'CharClass' };
-  Token.Or=         { id: 4,  name: 'Or' };
-  Token.MinOne=     { id: 5,  name: 'MinOne' };
-  Token.Optional=   { id: 6,  name: 'Optional' };
-  Token.Repeat=     { id: 7,  name: 'Repeat' };
-  Token.RepeatMany= { id: 8,  name: 'RepeatMany' };
-  Token.Define=     { id: 9,  name: 'Define' };
-  Token.ExpStart=   { id: 10, name: 'ExpStart' };
-  Token.ExpEnd=     { id: 11, name: 'ExpEnd' };
+  Token.None=         { id: 0,  name: 'None' };
+  Token.String=       { id: 1,  name: 'String' };
+  Token.Name=         { id: 2,  name: 'Name' };
+  Token.CharClass=    { id: 3,  name: 'CharClass' };
+  Token.Or=           { id: 4,  name: 'Or' };
+  Token.MinOne=       { id: 5,  name: 'MinOne' };
+  Token.Optional=     { id: 6,  name: 'Optional' };
+  Token.Repeat=       { id: 7,  name: 'Repeat' };
+  Token.RepeatMany=   { id: 8,  name: 'RepeatMany' };
+  Token.Define=       { id: 9,  name: 'Define' };
+  Token.ExpStart=     { id: 10, name: 'ExpStart' };
+  Token.ExpEnd=       { id: 11, name: 'ExpEnd' };
+  Token.NegLookAhead= { id: 12, name: 'NegLookAhead' };
+  Token.PosLookAhead= { id: 13, name: 'PosLookAhead' };
 
 
   /**
@@ -790,7 +800,7 @@
       this.name= null;
     }
 
-    static create( tk ) {
+    static create( tk, ...args ) {
       switch( tk.type ) {
         case Token.None:
           throw Error('None token found');
@@ -803,6 +813,12 @@
 
         case Token.CharClass:
           return new CharClassNode( tk );
+
+        case Token.PosLookAhead:
+          return new PosLookAheadNode( tk, ...args );
+
+        case Token.NegLookAhead:
+          return new NegLookAheadNode( tk, ...args );
 
         default:
           tk.throwError('Unexpected token: Cannot create grammar node from token type');
@@ -917,7 +933,7 @@
       return ( name === this.name ) ? this : null;
     }
 
-    linkExpression() {}
+    linkExpression() { /* NOP */ }
 
     match( it ) {
       let cntr= 0;
@@ -949,17 +965,38 @@
     }
   }
 
-  /**
-  * Subexpression Grammar Node
-  * Represents expressions grouped by parenthesis
-  **/
-  class SubExpressionNode extends GrammarNode {
+
+  class GrammarTreeNode extends GrammarNode {
     /** @param tk {Token} **/
     constructor( tk, p ) {
       super( tk );
 
-      /** @type {SubExpressionNode} **/
+      /** @type {GrammarTreeNode} **/
       this.parentExpr= p;
+    }
+
+    parent() {
+      return this.parentExpr;
+    }
+
+    addNode() {
+      abstractMethod();
+    }
+
+    getNodeByName() {
+      abstractMethod();
+    }
+  }
+
+  /**
+  * Subexpression Grammar Node
+  * Represents expressions grouped by parenthesis
+  **/
+  class SubExpressionNode extends GrammarTreeNode {
+    /** @param tk {Token} **/
+    constructor( tk, p ) {
+      super( tk, p );
+
       /** @type {[GrammarNode]} **/
       this.children= [];
     }
@@ -974,10 +1011,6 @@
 
     linkExpression( map ) {
       this.children.forEach( c => c.linkExpression( map ) )
-    }
-
-    parent() {
-      return this.parentExpr;
     }
 
     setGeneratorConfig( config ) {
@@ -1217,6 +1250,75 @@
     }
   }
 
+
+  class LookAheadNode extends GrammarTreeNode {
+    /** @param tk {Token} **/
+    constructor( tk, p ) {
+      super( tk, p );
+
+      this.childExpr= null;
+    }
+
+    parsingState() {
+      return State.LookAhead;
+    }
+
+    /** @param n {GrammarNode} **/
+    addNode( n ) {
+      assert( !this.childExpr, 'Multiple look ahead children' );
+      this.childExpr= n;
+    }
+
+    linkExpression( map ) {
+      assert( this.childExpr, 'Empty look ahead node' );
+      this.childExpr.linkExpression( map );
+    }
+
+    _shouldMatch() {
+      abstractMethod();
+    }
+
+    tryMatch( it ) {
+      const int= Interpreter.the();
+      const trace= int.matchTrace();
+      const testIt= it.copy();
+
+      trace.append('# Match lookahead')
+
+      trace.pushDepth();
+      const result= this.childExpr.match( testIt );
+
+      trace.popDepth();
+
+      if( result !== this._shouldMatch() ) {
+        trace.append('# Could not match look ahead');
+        int.matchError().error( this, it );
+        return false;
+      }
+
+      trace.append('# Matched look ahead');
+      return true;
+    }
+
+    matchErrorString() {
+      return 'Could not match lookahead';
+    }
+
+    generateSingle() { /* NOP */}
+  }
+
+  class PosLookAheadNode extends LookAheadNode {
+    _shouldMatch() {
+      return true;
+    }
+  }
+
+  class NegLookAheadNode extends LookAheadNode {
+    _shouldMatch() {
+      return false;
+    }
+  }
+
   /**
   * Nonterminal Grammar Node
   * Represents a recursion into another named rule expression
@@ -1390,7 +1492,8 @@
     None:          { id: 0, name: 'None' },
     Expression:    { id: 1, name: 'Exression' },
     SubExpression: { id: 2, name: 'SubExression' },
-    Alternative:   { id: 3, name: 'Alternative' }
+    Alternative:   { id: 3, name: 'Alternative' },
+    LookAhead:     { id: 4, name: 'LookAhead' }
   };
 
 
@@ -1477,11 +1580,26 @@
               // Fall through
 
             case State.Alternative:
+            case State.LookAhead:
             case State.SubExpression:
               // Begin sub exp
               if( token.is( Token.ExpStart ) ) {
                 subexpr= new SubExpressionNode( token, subexpr );
                 state= State.SubExpression;
+                break;
+              }
+
+              // Begin look ahead
+              if( token.is( Token.PosLookAhead, Token.NegLookAhead ) ) {
+                if( state === State.LookAhead ) {
+                  token.throwError('Expected expression for lookahead before the next one starts');
+                }
+
+                const node= GrammarNode.create( token, subexpr );
+                subexpr.addNode( node );
+
+                subexpr= node;
+                state= State.LookAhead;
                 break;
               }
 
@@ -1492,6 +1610,10 @@
                 if( state === State.Alternative ) {
                   subexpr= subexpr.parent();
                   state= subexpr.parsingState();
+                }
+
+                if( state === State.LookAhead ) {
+                  token.throwError('Expected expression for lookahead');
                 }
 
                 if( state !== State.SubExpression ) {
@@ -1505,6 +1627,7 @@
                 subexpr= subexpr.parent();
                 state= subexpr.parsingState();
 
+              // Regular token
               } else {
                 // Create grammar node to add to current subexpression
                 node= GrammarNode.create( token );
@@ -1516,7 +1639,7 @@
               }
 
               // Begin sub exp with an ALternative Node
-              if( it.peak().is( Token.Or ) && (state != State.Alternative) ) {
+              if( it.peak().is( Token.Or ) && (state !== State.Alternative) ) {
                 const orNode= new AlternativeNode( it.peak(), subexpr );
 
                 subexpr.addNode( orNode );
@@ -1525,6 +1648,12 @@
               }
 
               subexpr.addNode( node );
+
+              // End look ahead after adding a single node
+              if( state === State.LookAhead ) {
+                subexpr= subexpr.parent();
+                state= subexpr.parsingState();
+              }
 
               // End Alternative Node when no 'or' tokens follow
               if( state === State.Alternative ) {
