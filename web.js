@@ -83,6 +83,7 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
     }
 
     function errorln( ...m ) {
+      console.error( ...m );
       println( ...m, ConsoleColor.Red );
     }
 
@@ -148,6 +149,8 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
             return;
           }
 
+          console.log(int.expressions);
+
         // Run matcher
         } else {
           if( !text ) {
@@ -192,7 +195,6 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
 
       } catch( e ) {
         errorln('Caught internal error', e);
-        console.error( e );
       }
     }
 
