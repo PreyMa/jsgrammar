@@ -340,8 +340,9 @@
       // Move forward
       if( pos > this.idx ) {
         let line= this.line;
-        let cur= this.str.indexOf('\n', this.idx);
         let prev= this.idx;
+        let cur= this.str.indexOf('\n', this.idx);
+        cur= cur < 0 ? this.str.length : cur;
 
         // Move forward until the position is reached or skipped
         while( cur < pos ) {
