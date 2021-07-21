@@ -11,7 +11,7 @@ A simple EBNF matcher and generator written in JS
 7. [License](#license)
 
 ## Try it out
-Clone the repository and open the `index.html` file in your browser to run the demo application. You can write your own rules and try out matching and text generation. For more options and a more productive workflow run the CLI with node. An explanation of the EBNF syntax and the features are down below. 
+Clone the repository and open the `index.html` file in your browser to run the demo application. You can write your own rules and try out matching and text generation. For more options and a more productive workflow run the CLI with node. An explanation of the EBNF syntax and the features are down below.
 
 ## Usage - CLI
 Run the module folder with node and add your CLI options.
@@ -94,6 +94,13 @@ Inverted classes and inverted predefined classes (eg `\S`) like in regex are not
 myRule ::= [EBNF] [abcSTUV] [a-zQRVW] [\dabcd]
 ```
 
+Look-ahead expressions help make rules more readable by defining conditions if parsing should continue. Using the `&` and `!` operators a positive and respectively a negative look-ahead is defined. A look-ahead will only succeed if the expression following can be matched in case of a positive look-ahead or if it is not matched in case of a negative one. Look-aheads don't consume the matched characters, leaving them for other expressions to match.
+
+```text
+myRule ::= (!"abc" [\.])* "abc"
+```
+
+The rule above reads any character until `abc` is reached which is consumed by the next expression.
 
 To configure the text generator each expression's repetition quantifier can be named to define more precise repetition boundaries and randomness distribution. To name a quantifier or respectively the expression use `.name`. Expressions without a quantifier can also be named. Alternative expressions cannot be named directly. If you need to specify parameters for it you need to wrap it in a named subexpression and define the values there.
 
