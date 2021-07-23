@@ -52,7 +52,8 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
 
     const ConsoleColor= {
       Red: { css: 'red' },
-      Green: { css: 'green' }
+      Green: { css: 'green' },
+      Yellow: { css: 'yellow' }
     };
 
     function consoleClear() {
@@ -73,7 +74,7 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
 
     function println( ...s ) {
       let col= s[s.length-1];
-      if( col === ConsoleColor.Green || col === ConsoleColor.Red ) {
+      if( col === ConsoleColor.Green || col === ConsoleColor.Red || col === ConsoleColor.Yellow ) {
         s.pop();
       } else {
         col= null;
@@ -129,6 +130,11 @@ Number ::= Sign? Digit+.intDigits ('.' Digit*.decimalDigits)? Exp?`;
           errorln('Parsing error');
           errorln( e );
           return;
+        }
+
+        const warnString= int.parseWarnings().toString();
+        if( warnString ) {
+          println( warnString, ConsoleColor.Yellow );
         }
 
         // Run generator
