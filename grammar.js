@@ -1169,6 +1169,7 @@
 
         int.matchTrace().popDepth();
 
+        // Don't consider any more children after a cut expr
         result= childResult;
         return childResult || this.cutFlag;
       });
@@ -1295,6 +1296,11 @@
   }
 
 
+  /**
+  * Look Ahead Grammar Node Base
+  * Represents either a positive or negative look ahead using an exclamation mark or ampersand.
+  * Whether the match should succeed or fail is defined by overriding this class.
+  **/
   class LookAheadNode extends GrammarTreeNode {
     /** @param tk {Token} **/
     constructor( tk, p ) {
@@ -1364,6 +1370,10 @@
   }
 
 
+  /**
+  * Cut Grammar Node
+  * Represents a cut expression using a tilde
+  **/
   class CutNode extends GrammarNode {
     /** @param tk {Token} **/
     constructor( tk ) {
@@ -1388,6 +1398,7 @@
     }
 
     linkExpression( map, parent ) {
+      // Check if any of the parent nodes is an alternative node
       let hasAlternativeNode= false;
       parent.forEachParent( p => hasAlternativeNode |= (p instanceof AlternativeNode) );
 
