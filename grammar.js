@@ -598,6 +598,8 @@
         return new Token( Token.PosLookAhead, this.it.position() );
       } else if( this.it.consume('!') ) {
         return new Token( Token.NegLookAhead, this.it.position() );
+      } else if( this.it.consume('~') ) {
+        return new Token( Token.Cut, this.it.position() );
       }
 
       return null;
@@ -659,6 +661,10 @@
       return this.optData;
     }
 
+    position() {
+      return this.pos;
+    }
+
     isQuantifier() {
       return [ Token.MinOne, Token.Optional, Token.Repeat, Token.RepeatMany ].indexOf( this.type ) !== -1;
     }
@@ -690,6 +696,7 @@
   Token.ExpEnd=       { id: 11, name: 'ExpEnd' };
   Token.NegLookAhead= { id: 12, name: 'NegLookAhead' };
   Token.PosLookAhead= { id: 13, name: 'PosLookAhead' };
+  Token.Cut=          { id: 14, name: 'Cut' };
 
 
   /**
@@ -722,7 +729,10 @@
 
       let str= 'Matching Error: \n';
       this.backtrace.forEach( entry => {
-        str+= `at line ${entry.pos.toString()}: ${entry.node.matchErrorString()} ${entry.msg || ''}\n`;
+        const errStr= entry.node.matchErrorString();
+        if( errStr ) {
+          str+= `at line ${entry.pos.toString()}: ${errStr} ${entry.msg || ''}\n`;
+        }
       });
 
       return str;
@@ -820,6 +830,9 @@
 
         case Token.NegLookAhead:
           return new NegLookAheadNode( tk, ...args );
+
+        case Token.Cut:
+          return new CutNode( tk );
 
         default:
           tk.throwError('Unexpected token: Cannot create grammar node from token type');
@@ -986,6 +999,14 @@
       this.parentExpr= p;
     }
 
+    forEachParent( fn ) {
+      let node= this;
+      while( node ) {
+        fn( node );
+        node= node.parentExpr;
+      }
+    }
+
     addNode() {
       abstractMethod();
     }
@@ -1017,7 +1038,7 @@
     }
 
     linkExpression( map ) {
-      this.children.forEach( c => c.linkExpression( map ) )
+      this.children.forEach( c => c.linkExpression( map, this ) )
     }
 
     setGeneratorConfig( config ) {
@@ -1101,6 +1122,11 @@
 
       this.dist= null;
       this.nonRecursiveDist= null;
+      this.cutFlag= false;
+    }
+
+    setCutFlag( v= true ) {
+      this.cutFlag= v;
     }
 
     parsingState() {
@@ -1120,9 +1146,13 @@
     tryMatch( it ) {
       const int= Interpreter.the();
       int.matchTrace().append('| Matching alternative expression');
+      int.currentAlternativeExp().push( this );
+
+      this.cutFlag= false;
 
       // Try to match each child individually
-      const result= this.children.some( (c, i) => {
+      let result;
+      this.children.some( (c, i) => {
         const testIt= it.copy();
 
         if( i ) {
@@ -1130,24 +1160,31 @@
         }
         int.matchTrace().pushDepth();
 
-        const result= c.match(testIt);
+        const childResult= c.match(testIt);
 
         // Found a match -> update the global iterator
-        if( result ) {
+        if( childResult ) {
           it.set( testIt );
         }
 
         int.matchTrace().popDepth();
 
-        return result;
+        result= childResult;
+        return childResult || this.cutFlag;
       });
 
       // No child matches
       if( !result ) {
         int.matchError().append( this, it.position() );
-        int.matchTrace().append('| Could not match any option')
+        int.matchTrace().append(() => {
+          let s= '| Could not match any option';
+          s+= this.cutFlag ? ' (Stopped due to cut expression)' : '';
+
+          return s;
+        });
       }
 
+      int.currentAlternativeExp().pop();
       return result;
     }
 
@@ -1278,7 +1315,7 @@
 
     linkExpression( map ) {
       assert( this.childExpr, 'Empty look ahead node' );
-      this.childExpr.linkExpression( map );
+      this.childExpr.linkExpression( map, this );
     }
 
     _shouldMatch() {
@@ -1325,6 +1362,43 @@
       return false;
     }
   }
+
+
+  class CutNode extends GrammarNode {
+    /** @param tk {Token} **/
+    constructor( tk ) {
+      super( tk );
+    }
+
+    tryMatch() {
+      const int= Interpreter.the();
+      const stack= int.currentAlternativeExp();
+
+      if( stack.length ) {
+        int.matchTrace().append('~ Cut expression');
+
+        stack[stack.length-1].setCutFlag();
+      }
+
+      return true;
+    }
+
+    matchErrorString() {
+      return '';
+    }
+
+    linkExpression( map, parent ) {
+      let hasAlternativeNode= false;
+      parent.forEachParent( p => hasAlternativeNode |= (p instanceof AlternativeNode) );
+
+      if( !hasAlternativeNode ) {
+        Interpreter.the().parseWarnings().append('Warning at line ', this.position.toString(), ': No alternative expression for cut expression found');
+      }
+    }
+
+    generateSingle() { /* NOP */ }
+  }
+
 
   /**
   * Nonterminal Grammar Node
@@ -1514,8 +1588,10 @@
 
       this.sourceIterator= null;
       this.expressions= null;
+      this.currentAltExp= [];
       this.matchErrorObj= new MatchError();
       this.matchTraceObj= new MatchTrace();
+      this.parseWarnBuilder= new StringBuilder();
 
       this.configObj= Object.assign({
         maxGenRepetition: 128,
@@ -1706,6 +1782,10 @@
       return '';
     }
 
+    currentAlternativeExp() {
+      return this.currentAltExp;
+    }
+
     _getExpression( exprName ) {
       assert( this.expressions, 'No expressions parsed' );
 
@@ -1721,6 +1801,10 @@
 
     matchTrace() {
       return this.matchTraceObj;
+    }
+
+    parseWarnings() {
+      return this.parseWarnBuilder;
     }
 
     match( exprName, str ) {
