@@ -833,6 +833,8 @@
       }
     }
 
+    setParent() { /* NOP */ }
+
     setQuantity( tk ) {
       this.setName( tk );
 
@@ -978,6 +980,10 @@
 
     parent() {
       return this.parentExpr;
+    }
+
+    setParent( p ) {
+      this.parentExpr= p;
     }
 
     addNode() {
@@ -1642,6 +1648,8 @@
               // Begin sub exp with an ALternative Node
               if( it.peak().is( Token.Or ) && (state !== State.Alternative) ) {
                 const orNode= new AlternativeNode( it.peak(), subexpr );
+
+                node.setParent( orNode );
 
                 subexpr.addNode( orNode );
                 subexpr= orNode;
