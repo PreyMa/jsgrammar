@@ -216,6 +216,84 @@
 
 
   /**
+  * String Consumer class
+  * Consumes one of many strings from a specified list and calls an attached callback
+  * function. Uses a tree of string snippets to do as little work as possible. Overlapping
+  * strings like 'hello' and 'helloworld' result in bad behaviour.
+  **/
+  class StringConsumer {
+    constructor( config ) {
+
+      this.stringLengthSymbol= Symbol('StringLength');
+      this.tree= this._buildTree( config );
+    }
+
+    _buildTree( config ) {
+      const stage= {}, next= {};
+      let minLength= Number.MAX_SAFE_INTEGER;
+
+      // Find shortest string segment to consume
+      for( const key in config ) {
+        minLength= Math.min( minLength, key.length );
+      }
+
+      stage[this.stringLengthSymbol]= minLength;
+
+      // Add the first half of the string to current stage and save the rest for the
+      // next stage
+      for( const key in config ) {
+        const head= key.substring(0, minLength);
+        const tail= key.substring(minLength);
+
+        if( tail.length ) {
+          if( !next[head] ) {
+            next[head]= {};
+          }
+
+          next[head][tail]= config[key];
+
+        // The whole string can be added
+        } else {
+          const fn= config[key];
+          assert( typeof fn === 'function', 'Expected callback function for StringConsumer');
+
+          stage[head]= fn;
+        }
+      }
+
+      // Create subtrees
+      for( const key in next ) {
+        stage[key]= this._buildTree( next[key] );
+      }
+
+      return stage;
+    }
+
+    /** @param {StringIterator} it **/
+    consume( it, ...args ) {
+      let lenAccu= 0;
+
+      let stage= this.tree;
+      while( stage ) {
+        const len= stage[this.stringLengthSymbol];
+        const str= it.get( len, lenAccu );
+        const val= stage[str];
+
+        lenAccu+= len;
+
+        if( typeof val === 'function' ) {
+          it.jumpBy( lenAccu );
+          return val( it, ...args );
+        }
+
+        stage= val;
+      }
+
+      return null;
+    }
+  }
+
+  /**
   * String Position class
   * Stores index, line number and line-column of a position in a string
   **/
@@ -289,8 +367,12 @@
       return this.get();
     }
 
-    get( off= 0 ) {
-      return this.str.charAt(this.idx+ off);
+    get( len= 1, off= 0 ) {
+      if( len === 1 ) {
+        return this.str.charAt( this.idx+ off );
+      }
+
+      return this.str.substr( this.idx+ off, len );
     }
 
     /** @param {number|StringPosition} pos **/
@@ -307,12 +389,12 @@
       }
     }
 
-    peak() {
+    peak( len= 1 ) {
       if( !this.hasNext() ) {
         return null;
       }
 
-      return this.get( 1 );
+      return this.get( len, 1 );
     }
 
     is( s ) {
@@ -390,6 +472,11 @@
       while( this.hasNext() && fn(this.get()) ) {
         this.next();
       }
+    }
+
+    jumpBy( off ) {
+      const pos= Math.min( Math.max( this.idx+ off, 0 ), this.str.length );
+      this._jumpToPos( pos  );
     }
 
     position() {
@@ -580,29 +667,7 @@
     }
 
     _readOperator() {
-      if( this.it.consume('::=') ) {
-        return new Token( Token.Define, this.it.position() );
-      } else if( this.it.consume('?') ) {
-        return new Token( Token.Optional, this.it.position(), this._readQuantifierName() );
-      } else if( this.it.consume('+') ) {
-        return new Token( Token.MinOne, this.it.position(), this._readQuantifierName() );
-      } else if( this.it.consume('*') ) {
-        return new Token( Token.RepeatMany, this.it.position(), this._readQuantifierName() );
-      } else if( this.it.consume('|') ) {
-        return new Token( Token.Or, this.it.position() );
-      } else if( this.it.consume('(') ) {
-        return new Token( Token.ExpStart, this.it.position() );
-      } else if( this.it.consume(')') ) {
-        return new Token( Token.ExpEnd, this.it.position(), this._readQuantifierName() );
-      } else if( this.it.consume('&') ) {
-        return new Token( Token.PosLookAhead, this.it.position() );
-      } else if( this.it.consume('!') ) {
-        return new Token( Token.NegLookAhead, this.it.position() );
-      } else if( this.it.consume('~') ) {
-        return new Token( Token.Cut, this.it.position() );
-      }
-
-      return null;
+      return TokenIterator.operatorConsumer.consume( this.it, this );
     }
 
     _readQuantifierName() {
@@ -630,6 +695,18 @@
     }
   }
 
+  TokenIterator.operatorConsumer= new StringConsumer({
+    '::=': (it, self) => new Token( Token.Define,       it.position() ),
+    '?':   (it, self) => new Token( Token.Optional,     it.position(), self._readQuantifierName() ),
+    '+':   (it, self) => new Token( Token.MinOne,       it.position(), self._readQuantifierName() ),
+    '*':   (it, self) => new Token( Token.RepeatMany,   it.position(), self._readQuantifierName() ),
+    '|':   (it, self) => new Token( Token.Or,           it.position() ),
+    '(':   (it, self) => new Token( Token.ExpStart,     it.position() ),
+    ')':   (it, self) => new Token( Token.ExpEnd,       it.position(), self._readQuantifierName() ),
+    '&':   (it, self) => new Token( Token.PosLookAhead, it.position() ),
+    '!':   (it, self) => new Token( Token.NegLookAhead, it.position() ),
+    '~':   (it, self) => new Token( Token.Cur,          it.position() )
+  });
 
   /**
   * Token Base class
