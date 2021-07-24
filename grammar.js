@@ -381,7 +381,7 @@
       this.idx= pos;
     }
 
-    jump( s ) {
+    jumpTo( s ) {
       const pos= this.str.indexOf( s, this.idx );
       this._jumpToPos( pos < 0 ? this.str.length : pos+ s.length );
     }
@@ -574,7 +574,7 @@
     _readQuantifier() {
       const start= this.it.index();
 
-      this.it.jump('}');
+      this.it.jumpTo('}');
 
       return new Token( Token.Repeat, this.it.position(), this._readQuantifierName(), this.it.substring(start) );
     }
@@ -622,10 +622,10 @@
 
     _readComment() {
       if( this.it.consume('//') ) {
-        this.it.jump('\n');
+        this.it.jumpTo('\n');
 
       } else if( this.it.consume('/*') ) {
-        this.it.jump('*/');
+        this.it.jumpTo('*/');
       }
     }
   }
