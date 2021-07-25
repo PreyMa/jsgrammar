@@ -277,6 +277,11 @@ Available options:
     const srcFile= fs.readFileSync(srcFilePath, 'utf8');
     int.parse( srcFile );
 
+    const warnString= int.parseWarnings().toString();
+    if( warnString ) {
+      console.log( Colors.Yellow( warnString ) );
+    }
+
   } catch( e ) {
     stop('Could not parse grammar file\n'+ e);
   }
