@@ -838,9 +838,10 @@
       this.enabled= v;
     }
 
-    append( msg ) {
+    /** @param {StringIterator} it **/
+    append( it, msg ) {
       if( this.enabled ) {
-        this.builder.append( this.depthPadding, unwrapMessageCb( msg ), '\n' );
+        this.builder.append( 'at line ', it.toString().padEnd(8), this.depthPadding, unwrapMessageCb( msg ), '\n' );
       }
     }
 
@@ -1169,7 +1170,7 @@
         it.set( testIt );
 
       } else {
-        int.matchTrace().append('() Could not match SubExpression');
+        int.matchTrace().append(it, '() Could not match SubExpression');
       }
 
       return !hasError;
@@ -1222,7 +1223,7 @@
 
     tryMatch( it ) {
       const int= Interpreter.the();
-      int.matchTrace().append('| Matching alternative expression');
+      int.matchTrace().append(it, '| Matching alternative expression');
       int.currentAlternativeExp().push( this );
 
       this.cutFlag= false;
@@ -1233,7 +1234,7 @@
         const testIt= it.copy();
 
         if( i ) {
-          int.matchTrace().append('| Matching alternative option')
+          int.matchTrace().append(testIt, '| Matching alternative option')
         }
         int.matchTrace().pushDepth();
 
@@ -1254,7 +1255,7 @@
       // No child matches
       if( !result ) {
         int.matchError().append( this, it.position() );
-        int.matchTrace().append(() => {
+        int.matchTrace().append( it, () => {
           let s= '| Could not match any option';
           s+= this.cutFlag ? ' (Stopped due to cut expression)' : '';
 
@@ -1333,7 +1334,7 @@
     }
 
     tryMatch( it ) {
-      Interpreter.the().matchTrace().append(() => `() Matching expression '${this.name}'`);
+      Interpreter.the().matchTrace().append(it, () => `() Matching expression '${this.name}'`);
       return super.tryMatch( it );
     }
   }
@@ -1354,12 +1355,12 @@
       const int= Interpreter.the();
 
       if( !it.consume( this.str ) ) {
-        int.matchTrace().append(() => `# Could not match terminal '${this.str}'`);
+        int.matchTrace().append(it, () => `# Could not match terminal '${this.str}'`);
         int.matchError().error( this, it );
         return false;
       }
 
-      int.matchTrace().append(() => `# Matched terminal '${this.str}'`);
+      int.matchTrace().append(it, () => `# Matched terminal '${this.str}'`);
       return true;
     }
 
@@ -1410,7 +1411,7 @@
       const trace= int.matchTrace();
       const testIt= it.copy();
 
-      trace.append('# Match lookahead')
+      trace.append(it, '# Match lookahead')
 
       trace.pushDepth();
       const result= this.childExpr.match( testIt );
@@ -1418,12 +1419,12 @@
       trace.popDepth();
 
       if( result !== this._shouldMatch() ) {
-        trace.append('# Could not match look ahead');
+        trace.append(it, '# Could not match look ahead');
         int.matchError().error( this, it );
         return false;
       }
 
-      trace.append('# Matched look ahead');
+      trace.append(it, '# Matched look ahead');
       return true;
     }
 
@@ -1457,12 +1458,12 @@
       super( tk );
     }
 
-    tryMatch() {
+    tryMatch( it ) {
       const int= Interpreter.the();
       const stack= int.currentAlternativeExp();
 
       if( stack.length ) {
-        int.matchTrace().append('~ Cut expression');
+        int.matchTrace().append(it, '~ Cut expression');
 
         stack[stack.length-1].setCutFlag();
       }
@@ -1634,11 +1635,11 @@
       const fnd= this.classList.some( c => c.contains( it.get() ) );
       if( fnd ) {
         it.next();
-        int.matchTrace().append(() => '[] Matched character class'+ this.data);
+        int.matchTrace().append(it, () => '[] Matched character class'+ this.data);
         return true;
       }
 
-      int.matchTrace().append(() => '[] Could not match character class'+ this.data);
+      int.matchTrace().append(it, () => '[] Could not match character class'+ this.data);
       int.matchError().error( this, it );
 
       return false;
