@@ -705,7 +705,7 @@
     ')':   (it, self) => new Token( Token.ExpEnd,       it.position(), self._readQuantifierName() ),
     '&':   (it, self) => new Token( Token.PosLookAhead, it.position() ),
     '!':   (it, self) => new Token( Token.NegLookAhead, it.position() ),
-    '~':   (it, self) => new Token( Token.Cur,          it.position() )
+    '~':   (it, self) => new Token( Token.Cut,          it.position() )
   });
 
   /**
