@@ -1867,7 +1867,7 @@
     }
 
     matchErrorString() {
-      return '';
+      return 'Interpreter';
     }
 
     currentAlternativeExp() {
