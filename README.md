@@ -39,7 +39,7 @@ Just require it like any other CommonJS module. The CLI code won't be loaded if 
   const {Interpreter}= require('jsgrammar');
 ```
 
-Check out the CLI on how to use the interpreter as a library.
+Check out the code of the CLI on how to use the interpreter as a library.
 
 
 ## EBNF Syntax
@@ -112,6 +112,13 @@ myOtherRule ::= 'call me foobar'{1,5}.foobar
 myAnotherRule ::= ('call' | 'my' | 'parent' | 'baz')?.baz
 ```
 
+If an alternative expression consists of ambiguous options, where the same string could be matched by more than one of the expression, a cut expression can be used to restrict the options to match. When hitting a cut expression inside of an alternative option, the alternative expression is prevented from trying out any of the other following options even if the current one fails. In comnbination with the option precedence from left to right, it is possible to force the matcher to expect certain patterns if it has reached a certain state even if the options are possibly ambiguous.
+
+```text
+myRule ::= ('HELLO' ~ [A-Z]* 'world') | ([A-Z]* 'bye')
+```
+
+The rule above expects either a string of capital letters that ends with `bye` or one that starts with `HELLO` and ends with `world` with random capital letters inbetween. Without the cut expression the string `helloTESTbye` starting with `HELLO` but ending in `bye`, would also be matched successfully.
 
 ## Config File
 The config file loaded with the `--config` option is a simple JSON file which is required to at least have a `grammar` field specifying a path to a text file with the EBNF source.
