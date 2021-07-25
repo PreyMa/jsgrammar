@@ -43,7 +43,18 @@ Check out the code of the CLI on how to use the interpreter as a library.
 
 
 ## EBNF Syntax
-The syntax expected by the module is mostly identical to the standard EBNF, but it also supports some quality of life extensions.
+The syntax expected by the module is mostly identical to the standard EBNF, but it also supports some quality of life extensions. The following table gives a quick overview over all features, with a more detailed description down below.
+
+| Feature                | EBNF-Syntax            | Description                                                        |
+|------------------------|------------------------|--------------------------------------------------------------------|
+| Comment                | `// ...`, `/* ... */`  | Comments are ignored by the interpreter                            |
+| Definition             | `::=`                  | Defines a reusable rule with a name                                |
+| Terminal               | `"..."`, `'...'`       | Defines a string as terminal                                       |
+| Character Class        | `[...]`                | Defines a class of characters as terminal                          |
+| Repetition Quantififer | `?`, `+`, `*`, `{...}` | Quantifies how often an expression may be repeated                 |
+| Alternative            | `\|`                   | Matches either the left or right expression                        |
+| Look Ahead             | `&`, `!`               | Matches the following expression without consuming                 |
+| Cut                    | `~`                    | Prevents a parent alternative expression from trying other options |
 
 Define a rule with a name, `::=` and its child expressions and use it inside other ones by its name. Terminal symbols (aka strings) may be defined with double and single quotes. Characters can be escaped C-style with `\`.
 ```text
